@@ -1,5 +1,6 @@
 import express from "express";
 import { registry } from "./agents";
+import { errMessage } from "./util";
 
 export function createServer() {
   const app = express();
@@ -25,7 +26,7 @@ export function createServer() {
       const result = await runner(req.body ?? {});
       res.json({ ok: true, agent, ...result });
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
+      const msg = errMessage(e);
       console.error(`[server] /run/${agent} failed:`, msg);
       res.status(500).json({ ok: false, error: msg });
     }

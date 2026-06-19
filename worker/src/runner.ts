@@ -2,6 +2,7 @@ import { anthropic } from "./anthropic";
 import { db, type DraftInput } from "./db";
 import { buildSystemPrompt } from "./memory";
 import { estimateCostUsd, MODELS } from "./config";
+import { errMessage } from "./util";
 
 interface RunOpts {
   agentId: string;
@@ -72,7 +73,7 @@ export async function runAgent(opts: RunOpts): Promise<RunResult> {
       .from("agent_runs")
       .update({
         status: "error",
-        error: e instanceof Error ? e.message : String(e),
+        error: errMessage(e),
         finished_at: new Date().toISOString(),
       })
       .eq("id", runId);
