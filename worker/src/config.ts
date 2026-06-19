@@ -11,6 +11,8 @@ export const config = {
   supabaseUrl: required("SUPABASE_URL"),
   supabaseServiceRoleKey: required("SUPABASE_SERVICE_ROLE_KEY"),
   port: Number(process.env.PORT ?? 8787),
+  // CORS: lock the trigger server to your web origin in production (default open for local dev).
+  allowedOrigin: process.env.ALLOWED_ORIGIN ?? "*",
   google: {
     clientId: process.env.GOOGLE_CLIENT_ID ?? "",
     clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
