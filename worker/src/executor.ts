@@ -1,6 +1,7 @@
 import { db, type DraftRow } from "./db";
 import { createGmailDraft, saveDriveDoc } from "./google";
 import { googleConfigured } from "./config";
+import { findViolations } from "./guardrails";
 
 /**
  * Acts on approved drafts — the ONLY place a side-effect happens, and only on status='approved'.
@@ -62,6 +63,19 @@ async function handle(draft: DraftRow): Promise<void> {
       } else {
         await markSent(draft.id);
       }
+      break;
+    }
+
+    case "social_post":
+    case "newsletter": {
+      // Final non-advice check on the (possibly founder-edited) copy before it
+      // can go public. Currently "publish" = mark sent (manual posting); the
+      // guard is here so wiring a real publisher later can't bypass it.
+      const violations = findViolations(content);
+      if (violations.length) {
+        throw new Error(`blocked by non-advice guardrail: ${violations.join(", ")}`);
+      }
+      await markSent(draft.id);
       break;
     }
 

@@ -3,7 +3,7 @@ import { db, type DraftInput } from "./db";
 import { buildSystemPrompt } from "./memory";
 import { estimateCostUsd, MODELS } from "./config";
 import { errMessage } from "./util";
-import { isCompliant } from "./guardrails";
+import { findViolations, isCompliant } from "./guardrails";
 
 // Public-facing kinds get the non-advice guardrail; internal briefs/specs/reviews
 // (which may legitimately say "recommend") do not.
@@ -159,11 +159,21 @@ async function rewriteForCompliance(text: string): Promise<string> {
     .trim();
 }
 
-/** Keep a compliant body as-is, attempt one rewrite, else return null (drop). */
-async function ensureCompliant(body: string): Promise<string | null> {
-  if (isCompliant(body)) return body;
-  const fixed = await rewriteForCompliance(body);
-  return isCompliant(fixed) ? fixed : null;
+/** Keep a compliant body as-is; otherwise rewrite up to `maxAttempts` times.
+ *  Returns the cleaned body (or the founder's original if all attempts fail)
+ *  plus any remaining violations — the caller flags those for review, never drops. */
+async function makeCompliant(
+  body: string,
+  maxAttempts = 2,
+): Promise<{ body: string; violations: string[] }> {
+  if (isCompliant(body)) return { body, violations: [] };
+  let current = body;
+  for (let i = 0; i < maxAttempts; i++) {
+    current = await rewriteForCompliance(current);
+    if (isCompliant(current)) return { body: current, violations: [] };
+  }
+  // Still non-compliant after retries — keep the original content for the founder to edit.
+  return { body, violations: findViolations(body) };
 }
 
 /**
@@ -188,31 +198,32 @@ export async function generateDrafts(opts: RunOpts & {
   }
 
   const drafts: DraftInput[] = [];
-  let dropped = 0;
+  let flagged = 0;
   for (const d of candidates) {
     const kind = d.kind ?? opts.defaultKind;
     let body = d.body as string;
+    let title = d.title ?? `${opts.role} draft`;
+    const meta: Record<string, unknown> = {
+      ...(opts.defaultMeta ?? {}),
+      ...(d.channel ? { channel: d.channel } : {}),
+      ...(d.day ? { day: d.day } : {}),
+    };
     if (PUBLIC_KINDS.has(kind)) {
-      const checked = await ensureCompliant(body);
-      if (checked === null) {
-        dropped++;
-        continue; // never surface non-compliant public copy
+      const { body: clean, violations } = await makeCompliant(body);
+      body = clean;
+      if (violations.length) {
+        // Don't drop — surface it for the founder to fix. Publishing still requires
+        // approval, and the executor re-checks before anything goes public.
+        title = `⚠️ Needs compliance edit — ${title}`;
+        meta.guardrail = "flagged";
+        meta.guardrail_violations = violations;
+        flagged++;
       }
-      body = checked;
     }
-    drafts.push({
-      kind: kind as DraftInput["kind"],
-      title: d.title ?? `${opts.role} draft`,
-      body,
-      meta: {
-        ...(opts.defaultMeta ?? {}),
-        ...(d.channel ? { channel: d.channel } : {}),
-        ...(d.day ? { day: d.day } : {}),
-      },
-    });
+    drafts.push({ kind: kind as DraftInput["kind"], title, body, meta });
   }
-  if (dropped) {
-    console.warn(`[${opts.agentId}] dropped ${dropped} draft(s) that failed the non-advice guardrail`);
+  if (flagged) {
+    console.warn(`[${opts.agentId}] flagged ${flagged} draft(s) for compliance review`);
   }
 
   const count = await insertDrafts(runId, opts.agentId, drafts);
