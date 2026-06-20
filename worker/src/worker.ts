@@ -1,3 +1,4 @@
+// FounderOS worker — Railway auto-deploys this on push to main (root dir: worker/).
 import cron from "node-cron";
 import { config, googleConfigured } from "./config";
 import { registry } from "./agents";
