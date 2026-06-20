@@ -16,7 +16,10 @@ export async function runMarketing(input?: { topic?: string }): Promise<{ count:
     `Produce 5 social posts (kind "social_post"; set "channel" to LinkedIn or X and "day" Mon–Fri) ` +
     `and 1 newsletter section (kind "newsletter", the "Market Week Ahead"). Spread the angles across ` +
     `the week (privacy-first, stocks+crypto, signal-vs-noise, the Sunday ritual, conflict-free). ` +
-    `Specific and on-brand — no generic filler, and strictly non-advice.`;
+    `Specific and on-brand — no generic filler, and strictly non-advice. ` +
+    `CRITICAL — never use advice vocabulary: do NOT write "recommend", "you should", ` +
+    `"buy"/"sell"/"take profits"/"buy the dip"/"time to", or "consider trimming/selling". ` +
+    `State everything as neutral observation or education.`;
 
   const { count } = await generateDrafts({
     agentId: "marketing",
