@@ -10,7 +10,9 @@
 const FORBIDDEN: { pattern: RegExp; label: string }[] = [
   { pattern: /\byou should\b/i, label: "you should" },
   { pattern: /\bconsider (trimming|selling|buying|rebalanc\w*|rotating)\b/i, label: "consider <action>" },
-  { pattern: /\brecommend\w*/i, label: "recommend" },
+  // Verb forms ("we recommend", "recommended") are advice; the noun "recommendation"
+  // is allowed because the standard non-advice disclaimer says "not a personal recommendation".
+  { pattern: /\brecommend(s|ed|ing)?\b/i, label: "recommend" },
   { pattern: /\brebalance into\b/i, label: "rebalance into" },
   { pattern: /\btake profits?\b/i, label: "take profit(s)" },
   { pattern: /\bbuy the dip\b/i, label: "buy the dip" },
