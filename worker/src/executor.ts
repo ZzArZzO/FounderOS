@@ -1,7 +1,8 @@
 import { db, type DraftRow } from "./db";
 import { createGmailDraft, saveDriveDoc } from "./google";
 import { createBeehiivDraft } from "./beehiiv";
-import { googleConfigured, beehiivConfigured } from "./config";
+import { createResendBroadcast } from "./resend";
+import { googleConfigured, beehiivConfigured, resendConfigured } from "./config";
 import { findViolations } from "./guardrails";
 
 /**
@@ -76,10 +77,17 @@ async function handle(draft: DraftRow): Promise<void> {
       if (violations.length) {
         throw new Error(`blocked by non-advice guardrail: ${violations.join(", ")}`);
       }
-      if (draft.kind === "newsletter" && beehiivConfigured) {
-        const title = String(meta.subject ?? draft.title).replace(/^⚠️ Needs compliance edit — /, "");
-        const post = await createBeehiivDraft(title, content);
-        await markSent(draft.id, { ...meta, beehiiv_post_id: post.id, beehiiv_url: post.url });
+      if (draft.kind === "newsletter") {
+        const title = String(meta.subject ?? draft.title).replace(/^⚠️ Needs compliance edit\W*/, "");
+        if (resendConfigured) {
+          const b = await createResendBroadcast(title, content);
+          await markSent(draft.id, { ...meta, resend_broadcast_id: b.id, resend_sent: b.sent });
+        } else if (beehiivConfigured) {
+          const post = await createBeehiivDraft(title, content);
+          await markSent(draft.id, { ...meta, beehiiv_post_id: post.id, beehiiv_url: post.url });
+        } else {
+          await markSent(draft.id);
+        }
       } else {
         await markSent(draft.id);
       }

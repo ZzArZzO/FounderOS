@@ -22,12 +22,21 @@ export const config = {
     apiKey: process.env.BEEHIIV_API_KEY ?? "",
     publicationId: process.env.BEEHIIV_PUBLICATION_ID ?? "",
   },
+  resend: {
+    apiKey: process.env.RESEND_API_KEY ?? "",
+    audienceId: process.env.RESEND_AUDIENCE_ID ?? "",
+    from: process.env.RESEND_FROM ?? "",
+    autosend: process.env.RESEND_AUTOSEND === "true",
+  },
 };
 
 export const googleConfigured =
   !!config.google.clientId && !!config.google.clientSecret && !!config.google.refreshToken;
 
 export const beehiivConfigured = !!config.beehiiv.apiKey && !!config.beehiiv.publicationId;
+
+export const resendConfigured =
+  !!config.resend.apiKey && !!config.resend.audienceId && !!config.resend.from;
 
 // Model IDs — default to the latest. Do not append date suffixes.
 export const MODELS = {
