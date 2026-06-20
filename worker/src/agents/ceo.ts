@@ -1,6 +1,6 @@
 import { db } from "../db";
 import { generateDrafts } from "../runner";
-import { MODELS } from "../config";
+import { MODELS, agentModel, agentEffort } from "../config";
 
 /**
  * The CEO agent reads what the other agents have been doing (recent runs + drafts) and the
@@ -37,14 +37,15 @@ export async function runCeo(input?: Record<string, unknown>): Promise<{ count: 
     `important decisions or focuses for the coming week, (3) what each agent should prioritize. ` +
     `Be decisive and specific.\n\n--- Team activity ---\n${activity}`;
 
+  const model = agentModel("ceo", MODELS.opus);
   const { count } = await generateDrafts({
     agentId: "ceo",
     role: "CEO Agent",
-    model: MODELS.opus,
+    model,
     trigger: input ? "manual" : "cron:weekly",
     defaultKind: "brief",
-    thinking: true,
-    effort: "high",
+    thinking: model === MODELS.opus,
+    effort: agentEffort("ceo", "high"),
     maxTokens: 4000,
     userContent,
     input: input ?? {},

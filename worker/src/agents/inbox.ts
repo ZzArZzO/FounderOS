@@ -1,7 +1,7 @@
 import { generateDrafts } from "../runner";
 import { listRecentThreads, listTodayEvents } from "../google";
 import { draftReplyForThread } from "./_replies";
-import { MODELS, googleConfigured } from "../config";
+import { MODELS, googleConfigured, agentModel, agentEffort } from "../config";
 
 /**
  * Daily brief + reply drafts. Opus writes the brief; Haiku drafts replies per thread.
@@ -18,14 +18,15 @@ export async function runInbox(input?: Record<string, unknown>): Promise<{ count
     `Recent threads:\n` +
     threads.map((t, i) => `${i + 1}. From ${t.from} — "${t.subject}": ${t.snippet}`).join("\n");
 
+  const briefModel = agentModel("inbox", MODELS.opus);
   const { count: briefCount } = await generateDrafts({
     agentId: "inbox",
     role: "Inbox",
-    model: MODELS.opus,
+    model: briefModel,
     trigger: input ? "manual" : "cron:daily",
     defaultKind: "brief",
-    thinking: true,
-    effort: "high",
+    thinking: briefModel === MODELS.opus,
+    effort: agentEffort("inbox", "high"),
     maxTokens: 2500,
     userContent:
       `Write ONE "brief" draft for the founder's morning: what's urgent, what needs a decision, ` +

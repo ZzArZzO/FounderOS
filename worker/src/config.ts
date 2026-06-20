@@ -30,6 +30,27 @@ export const MODELS = {
   haiku: "claude-haiku-4-5",
 } as const;
 
+const MODEL_ALIAS: Record<string, string> = {
+  opus: MODELS.opus,
+  sonnet: MODELS.sonnet,
+  haiku: MODELS.haiku,
+};
+
+/** Per-agent model override via env, e.g. MODEL_INBOX=sonnet. Falls back to the agent's default. */
+export function agentModel(agentId: string, fallback: string): string {
+  const v = process.env[`MODEL_${agentId.toUpperCase()}`]?.toLowerCase();
+  return (v && MODEL_ALIAS[v]) || fallback;
+}
+
+/** Per-agent reasoning effort via env, e.g. EFFORT_INBOX=medium. */
+export function agentEffort(
+  agentId: string,
+  fallback: "low" | "medium" | "high",
+): "low" | "medium" | "high" {
+  const v = process.env[`EFFORT_${agentId.toUpperCase()}`]?.toLowerCase();
+  return v === "low" || v === "medium" || v === "high" ? v : fallback;
+}
+
 // USD per 1M tokens: [input, output]. Cache writes ~1.25x input, reads ~0.1x input.
 const PRICING: Record<string, { in: number; out: number }> = {
   "claude-opus-4-8": { in: 5, out: 25 },
