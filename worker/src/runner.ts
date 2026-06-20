@@ -176,6 +176,14 @@ async function makeCompliant(
   return { body, violations: findViolations(body) };
 }
 
+/** Strip AI-tell em/en dashes from public copy (hyphens in compound words stay). */
+function humanizeDashes(text: string): string {
+  return text
+    .replace(/(^|\n)[ \t]*[—–][ \t]*/g, "$1") // leading dash (signatures, list intros)
+    .replace(/\s+[—–]\s+/g, ", ") // connector dash -> comma
+    .replace(/[—–]/g, "-"); // any remaining (e.g. ranges) -> hyphen
+}
+
 /**
  * High-level helper for agents that emit a list of drafts (marketing, dev, legal, ceo).
  * Adds the JSON contract, runs the model, parses, attaches default meta, inserts.
@@ -214,11 +222,14 @@ export async function generateDrafts(opts: RunOpts & {
       if (violations.length) {
         // Don't drop — surface it for the founder to fix. Publishing still requires
         // approval, and the executor re-checks before anything goes public.
-        title = `⚠️ Needs compliance edit — ${title}`;
+        title = `⚠️ Needs compliance edit: ${title}`;
         meta.guardrail = "flagged";
         meta.guardrail_violations = violations;
         flagged++;
       }
+      // Backstop the "write like a human" rule: no AI-tell em/en dashes in public copy.
+      body = humanizeDashes(body);
+      title = humanizeDashes(title);
     }
     drafts.push({ kind: kind as DraftInput["kind"], title, body, meta });
   }

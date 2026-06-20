@@ -19,7 +19,9 @@ export async function runMarketing(input?: { topic?: string }): Promise<{ count:
     `Specific and on-brand — no generic filler, and strictly non-advice. ` +
     `CRITICAL — never use advice vocabulary: do NOT write "recommend", "you should", ` +
     `"buy"/"sell"/"take profits"/"buy the dip"/"time to", or "consider trimming/selling". ` +
-    `State everything as neutral observation or education.`;
+    `State everything as neutral observation or education. ` +
+    `Write like a human, not an AI (see your writing_style memory): no em dashes or en dashes, ` +
+    `no AI-tell vocabulary, plain and direct with varied sentence length.`;
 
   const { count } = await generateDrafts({
     agentId: "marketing",
