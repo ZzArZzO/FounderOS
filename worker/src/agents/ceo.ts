@@ -1,5 +1,6 @@
 import { db } from "../db";
 import { generateDrafts } from "../runner";
+import { getSubscriberStats } from "../beehiiv";
 import { MODELS, agentModel, agentEffort } from "../config";
 
 /**
@@ -23,6 +24,17 @@ export async function runCeo(input?: Record<string, unknown>): Promise<{ count: 
     .order("created_at", { ascending: false })
     .limit(50);
 
+  const { data: costRows } = await db
+    .from("agent_runs")
+    .select("cost_usd")
+    .gte("started_at", since);
+  const spend = (costRows ?? []).reduce((s, r) => s + (Number(r.cost_usd) || 0), 0);
+  const subs = await getSubscriberStats();
+  const metrics =
+    `Metrics (last 7d): newsletter subscribers ${subs?.active ?? "n/a"} active` +
+    `${subs?.total ? ` / ${subs.total} total` : ""}; FounderOS spend $${spend.toFixed(2)}. ` +
+    `(Sunday app signups/MRR are not yet wired into FounderOS.)`;
+
   const activity =
     `Agent runs (last 7d):\n` +
     (runs ?? []).map((r) => `- ${r.agent_id} ${r.trigger} [${r.status}] ${r.started_at}`).join("\n") +
@@ -35,7 +47,8 @@ export async function runCeo(input?: Record<string, unknown>): Promise<{ count: 
     `You are leading the founder's AI team this week. Using your memory (business + goals) and ` +
     `the team activity below, produce ONE "brief" draft: (1) where things stand, (2) the 3 most ` +
     `important decisions or focuses for the coming week, (3) what each agent should prioritize. ` +
-    `Be decisive and specific.\n\n--- Team activity ---\n${activity}`;
+    `Lead with the metrics. Be decisive and specific.\n\n--- Metrics ---\n${metrics}` +
+    `\n\n--- Team activity ---\n${activity}`;
 
   const model = agentModel("ceo", MODELS.opus);
   const { count } = await generateDrafts({

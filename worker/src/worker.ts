@@ -19,12 +19,14 @@ function scheduleCrons() {
   // Weekly strategy + content (Mon 09:00)
   cron.schedule("0 9 * * 1", () => runSafe("ceo"));
   cron.schedule("0 9 * * 1", () => runSafe("marketing"));
+  cron.schedule("0 8 * * 1", () => runSafe("watch")); // reg + competitor watch, Mon 08:00
 
   // Google-dependent agents only if configured
   if (googleConfigured) {
     cron.schedule("0 7 * * *", () => runSafe("inbox")); // daily 07:00
     cron.schedule("0 8 * * 1-5", () => runSafe("sales")); // weekdays 08:00
-    console.log("[cron] inbox + sales scheduled (Google configured).");
+    cron.schedule("0 9 * * *", () => runSafe("earlyaccess")); // daily 09:00
+    console.log("[cron] inbox + sales + earlyaccess scheduled (Google configured).");
   } else {
     console.log("[cron] inbox + sales NOT scheduled — Google not configured.");
   }

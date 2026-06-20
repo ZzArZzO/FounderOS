@@ -38,3 +38,24 @@ export async function createBeehiivDraft(
   const post = data?.data ?? data ?? {};
   return { id: post.id ?? "", url: post.web_url ?? post.url };
 }
+
+/** Read subscriber counts (read endpoint, works on any plan). Null on error. */
+export async function getSubscriberStats(): Promise<{ active: number | null; total: number | null } | null> {
+  if (!beehiivConfigured) return null;
+  try {
+    const res = await fetch(
+      `https://api.beehiiv.com/v2/publications/${config.beehiiv.publicationId}?expand[]=stats`,
+      { headers: { Authorization: `Bearer ${config.beehiiv.apiKey}` } },
+    );
+    if (!res.ok) return null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data: any = await res.json().catch(() => ({}));
+    const stats = data?.data?.stats ?? data?.stats ?? {};
+    return {
+      active: stats.active_subscriptions ?? stats.total_active_subscriptions ?? null,
+      total: stats.total_subscriptions ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
