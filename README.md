@@ -44,8 +44,10 @@ appear in the queue. Approve / edit / reject it.
 Add `GOOGLE_CLIENT_ID/SECRET/REFRESH_TOKEN` to `worker/.env` to activate these.
 
 ## Deploy
-- Worker → Railway (`npm run build` / `npm start`)
-- Web → Vercel (`npm run build`)
+- Worker → Railway (`npm start`) — **auto-deploys on push to `main`** (root dir `worker/`)
+- Web → Vercel (`npm run build`) — **auto-deploys on push to `main`** (root dir `web/`)
 - DB → Supabase (hosted)
+
+See [`DEPLOY.md`](./DEPLOY.md) for first-time setup.
 
 Expected cost: ~$20–25/mo (Claude API + ~$5 Railway). Inbox triage dominates.
