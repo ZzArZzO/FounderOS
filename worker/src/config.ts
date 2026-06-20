@@ -18,10 +18,16 @@ export const config = {
     clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
     refreshToken: process.env.GOOGLE_REFRESH_TOKEN ?? "",
   },
+  beehiiv: {
+    apiKey: process.env.BEEHIIV_API_KEY ?? "",
+    publicationId: process.env.BEEHIIV_PUBLICATION_ID ?? "",
+  },
 };
 
 export const googleConfigured =
   !!config.google.clientId && !!config.google.clientSecret && !!config.google.refreshToken;
+
+export const beehiivConfigured = !!config.beehiiv.apiKey && !!config.beehiiv.publicationId;
 
 // Model IDs — default to the latest. Do not append date suffixes.
 export const MODELS = {
