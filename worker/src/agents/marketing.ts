@@ -1,14 +1,22 @@
 import { generateDrafts } from "../runner";
 import { MODELS } from "../config";
+import { getMarketContext } from "../marketContext";
 
 export async function runMarketing(input?: { topic?: string }): Promise<{ count: number }> {
   const topic = input?.topic?.trim();
+  const market = await getMarketContext();
+
   const userContent =
-    `Write this week's marketing content for the founder, grounded in the business and brand ` +
+    `Plan this week's Sunday marketing as a CONTENT CALENDAR, grounded in the business and brand ` +
     `voice in your memory.\n` +
     (topic ? `Focus topic: ${topic}\n` : "") +
-    `Produce 5 short social posts (kind "social_post") and 1 newsletter section (kind ` +
-    `"newsletter"). Make them specific and on-brand — no generic filler.`;
+    (market
+      ? `Live market context (factual — reference as neutral observations, NEVER as advice):\n${market}\n`
+      : `(Live market data unavailable — keep copy evergreen.)\n`) +
+    `Produce 5 social posts (kind "social_post"; set "channel" to LinkedIn or X and "day" Mon–Fri) ` +
+    `and 1 newsletter section (kind "newsletter", the "Market Week Ahead"). Spread the angles across ` +
+    `the week (privacy-first, stocks+crypto, signal-vs-noise, the Sunday ritual, conflict-free). ` +
+    `Specific and on-brand — no generic filler, and strictly non-advice.`;
 
   const { count } = await generateDrafts({
     agentId: "marketing",
@@ -17,7 +25,7 @@ export async function runMarketing(input?: { topic?: string }): Promise<{ count:
     trigger: input ? "manual" : "cron:weekly",
     defaultKind: "social_post",
     effort: "low",
-    maxTokens: 3000,
+    maxTokens: 3500,
     userContent,
     input: input ?? {},
   });

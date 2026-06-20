@@ -3,6 +3,19 @@ import { db, type DraftInput } from "./db";
 import { buildSystemPrompt } from "./memory";
 import { estimateCostUsd, MODELS } from "./config";
 import { errMessage } from "./util";
+import { isCompliant } from "./guardrails";
+
+// Public-facing kinds get the non-advice guardrail; internal briefs/specs/reviews
+// (which may legitimately say "recommend") do not.
+const PUBLIC_KINDS = new Set(["social_post", "newsletter"]);
+
+interface DraftCandidate {
+  kind?: string;
+  title?: string;
+  body?: string;
+  channel?: string;
+  day?: string;
+}
 
 interface RunOpts {
   agentId: string;
@@ -122,8 +135,36 @@ export function extractJson<T = unknown>(text: string): T {
 const JSON_CONTRACT = `
 
 Respond with ONLY a JSON object, no prose, in exactly this shape:
-{"drafts":[{"kind":"<kind>","title":"<short label>","body":"<the content>"}]}
+{"drafts":[{"kind":"<kind>","title":"<short label>","body":"<the content>","channel":"<optional: LinkedIn|X|newsletter>","day":"<optional: Mon..Sun>"}]}
 Do not wrap it in markdown. Each draft's "body" is the full content the founder will review.`;
+
+/** One Haiku pass to strip advice-like phrasing while preserving meaning. */
+async function rewriteForCompliance(text: string): Promise<string> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const res: any = await anthropic.messages.create({
+    model: MODELS.haiku,
+    max_tokens: 1500,
+    system:
+      "You enforce a strict non-advice policy for a regulated EU fintech (MiFID II / MiCA). " +
+      "Rewrite the copy so it contains NO personal investment advice or recommendations " +
+      "(no 'you should', 'recommend', 'buy/sell/take profits', 'buy the dip', 'time to buy', etc.). " +
+      "Keep it factual, observational, and educational; preserve meaning, tone, and length. " +
+      "Output ONLY the rewritten text.",
+    messages: [{ role: "user", content: text }],
+  });
+  return (res.content ?? [])
+    .filter((b: { type: string }) => b.type === "text")
+    .map((b: { text: string }) => b.text)
+    .join("\n")
+    .trim();
+}
+
+/** Keep a compliant body as-is, attempt one rewrite, else return null (drop). */
+async function ensureCompliant(body: string): Promise<string | null> {
+  if (isCompliant(body)) return body;
+  const fixed = await rewriteForCompliance(body);
+  return isCompliant(fixed) ? fixed : null;
+}
 
 /**
  * High-level helper for agents that emit a list of drafts (marketing, dev, legal, ceo).
@@ -138,25 +179,41 @@ export async function generateDrafts(opts: RunOpts & {
     userContent: opts.userContent + JSON_CONTRACT,
   });
 
-  let parsed: { drafts?: Array<{ kind?: string; title?: string; body?: string }> };
+  let candidates: DraftCandidate[];
   try {
-    parsed = extractJson(text);
+    candidates = (extractJson<{ drafts?: DraftCandidate[] }>(text).drafts ?? []).filter((d) => d.body);
   } catch {
-    // Fallback: store the raw text as a single draft so nothing is lost.
-    const count = await insertDrafts(runId, opts.agentId, [
-      { kind: opts.defaultKind as DraftInput["kind"], title: `${opts.role} output`, body: text, meta: opts.defaultMeta },
-    ]);
-    return { runId, count };
+    // Fallback: keep the raw text as a single draft so nothing is lost.
+    candidates = [{ kind: opts.defaultKind, title: `${opts.role} output`, body: text }];
   }
 
-  const drafts: DraftInput[] = (parsed.drafts ?? [])
-    .filter((d) => d.body)
-    .map((d) => ({
-      kind: (d.kind ?? opts.defaultKind) as DraftInput["kind"],
+  const drafts: DraftInput[] = [];
+  let dropped = 0;
+  for (const d of candidates) {
+    const kind = d.kind ?? opts.defaultKind;
+    let body = d.body as string;
+    if (PUBLIC_KINDS.has(kind)) {
+      const checked = await ensureCompliant(body);
+      if (checked === null) {
+        dropped++;
+        continue; // never surface non-compliant public copy
+      }
+      body = checked;
+    }
+    drafts.push({
+      kind: kind as DraftInput["kind"],
       title: d.title ?? `${opts.role} draft`,
-      body: d.body as string,
-      meta: opts.defaultMeta,
-    }));
+      body,
+      meta: {
+        ...(opts.defaultMeta ?? {}),
+        ...(d.channel ? { channel: d.channel } : {}),
+        ...(d.day ? { day: d.day } : {}),
+      },
+    });
+  }
+  if (dropped) {
+    console.warn(`[${opts.agentId}] dropped ${dropped} draft(s) that failed the non-advice guardrail`);
+  }
 
   const count = await insertDrafts(runId, opts.agentId, drafts);
   return { runId, count };
