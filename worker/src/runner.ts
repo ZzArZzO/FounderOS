@@ -7,7 +7,7 @@ import { findViolations, isCompliant } from "./guardrails";
 
 // Public-facing kinds get the non-advice guardrail; internal briefs/specs/reviews
 // (which may legitimately say "recommend") do not.
-const PUBLIC_KINDS = new Set(["social_post", "newsletter"]);
+const PUBLIC_KINDS = new Set(["social_post", "newsletter", "blog_post"]);
 
 interface DraftCandidate {
   kind?: string;

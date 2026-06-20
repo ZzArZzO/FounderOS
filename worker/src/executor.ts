@@ -2,6 +2,7 @@ import { db, type DraftRow } from "./db";
 import { createGmailDraft, saveDriveDoc } from "./google";
 import { createBeehiivDraft } from "./beehiiv";
 import { createResendBroadcast } from "./resend";
+import { repurposeNewsletter } from "./agents/repurpose";
 import { googleConfigured, beehiivConfigured, resendConfigured } from "./config";
 import { findViolations } from "./guardrails";
 
@@ -87,6 +88,13 @@ async function handle(draft: DraftRow): Promise<void> {
           await markSent(draft.id, { ...meta, beehiiv_post_id: post.id, beehiiv_url: post.url });
         } else {
           await markSent(draft.id);
+        }
+        // Repurpose the approved issue into social + SEO drafts for the queue.
+        try {
+          const r = await repurposeNewsletter(title, content);
+          console.log(`[executor] repurposed newsletter into ${r.count} draft(s)`);
+        } catch (e) {
+          console.error("[executor] repurpose failed:", e instanceof Error ? e.message : e);
         }
       } else {
         await markSent(draft.id);
