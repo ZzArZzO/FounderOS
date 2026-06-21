@@ -177,7 +177,7 @@ async function makeCompliant(
 }
 
 /** Strip AI-tell em/en dashes from public copy (hyphens in compound words stay). */
-function humanizeDashes(text: string): string {
+export function humanizeDashes(text: string): string {
   return text
     .replace(/(^|\n)[ \t]*[—–][ \t]*/g, "$1") // leading dash (signatures, list intros)
     .replace(/\s+[—–]\s+/g, ", ") // connector dash -> comma

@@ -1,4 +1,4 @@
-import { runAgent, insertDrafts, extractJson } from "../runner";
+import { runAgent, insertDrafts, extractJson, humanizeDashes } from "../runner";
 import { getMarketContext } from "../marketContext";
 import { renderShort } from "../video";
 import { findViolations } from "../guardrails";
@@ -40,7 +40,9 @@ export async function runVideo(input?: Record<string, unknown>): Promise<{ count
   } catch {
     script = {};
   }
-  const cards = [...(script.cards ?? []), script.cta].filter(Boolean) as string[];
+  const cards = [...(script.cards ?? []), script.cta]
+    .filter(Boolean)
+    .map((c) => humanizeDashes(c as string));
   if (cards.length === 0) throw new Error("video script produced no cards");
 
   const url = await renderShort(cards);
@@ -48,7 +50,7 @@ export async function runVideo(input?: Record<string, unknown>): Promise<{ count
   // Guardrail the script copy (the video is already rendered, so flag rather than block).
   const violations = findViolations(cards.join(" . "));
   const meta: Record<string, unknown> = { video_url: url, channel: "Reels/Shorts/TikTok" };
-  let title = script.title || "Market Week Ahead — short";
+  let title = humanizeDashes(script.title || "Market Week Ahead short");
   if (violations.length) {
     title = `⚠️ Needs compliance edit: ${title}`;
     meta.guardrail = "flagged";
