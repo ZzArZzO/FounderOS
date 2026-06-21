@@ -10,6 +10,8 @@ export type DraftKind =
   | "email_reply"
   | "social_post"
   | "newsletter"
+  | "blog_post"
+  | "video"
   | "brief"
   | "spec"
   | "debug"

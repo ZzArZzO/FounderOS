@@ -28,6 +28,10 @@ export const config = {
     from: process.env.RESEND_FROM ?? "",
     autosend: process.env.RESEND_AUTOSEND === "true",
   },
+  shotstack: {
+    apiKey: process.env.SHOTSTACK_API_KEY ?? "",
+    env: process.env.SHOTSTACK_ENV ?? "stage", // "stage" (sandbox) or "v1" (production)
+  },
 };
 
 export const googleConfigured =
@@ -37,6 +41,8 @@ export const beehiivConfigured = !!config.beehiiv.apiKey && !!config.beehiiv.pub
 
 export const resendConfigured =
   !!config.resend.apiKey && !!config.resend.audienceId && !!config.resend.from;
+
+export const shotstackConfigured = !!config.shotstack.apiKey;
 
 // Model IDs — default to the latest. Do not append date suffixes.
 export const MODELS = {

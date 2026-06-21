@@ -36,6 +36,14 @@ export function DraftCard({ draft, onDecided }: { draft: Draft; onDecided: () =>
       </div>
       <h3>{draft.title}</h3>
 
+      {typeof draft.meta?.video_url === "string" && (
+        <video
+          controls
+          src={draft.meta.video_url as string}
+          style={{ width: "100%", maxHeight: 380, borderRadius: 8, marginBottom: 10, background: "#000" }}
+        />
+      )}
+
       {editing ? (
         <textarea value={body} onChange={(e) => setBody(e.target.value)} />
       ) : (

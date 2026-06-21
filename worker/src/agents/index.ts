@@ -6,6 +6,7 @@ import { runInbox } from "./inbox";
 import { runSales } from "./sales";
 import { runEarlyAccess } from "./leads";
 import { runWatch } from "./watch";
+import { runVideo } from "./video";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AgentRunner = (input?: any) => Promise<{ count: number }>;
@@ -19,4 +20,5 @@ export const registry: Record<string, AgentRunner> = {
   sales: runSales,
   earlyaccess: runEarlyAccess,
   watch: runWatch,
+  video: runVideo,
 };
